@@ -1,0 +1,252 @@
+8..
+
+.MODEL SMALL
+ .STACK 100H
+
+ .DATA
+    PROMPT_1  DB  'Enter the Lower Case Letter : $'
+    PROMPT_2  DB  0DH,0AH,'The Upper Case Letter is : $\'
+
+ .CODE
+   MAIN PROC
+     MOV AX, @DATA                ; initialize DS
+     MOV DS, AX
+
+     LEA DX, PROMPT_1             ; load and print PROMPT_1
+     MOV AH, 9
+     INT 21H
+
+     MOV AH, 1                    ; read a letter
+     INT 21H
+
+     MOV BL, AL                   ; save the letter in BL 
+
+     LEA DX, PROMPT_2             ; load and print PROMPT_2
+     MOV AH, 9
+     INT 21H
+
+     AND BL, 0DFH                 ; convert a lower case letter to upper
+                                  ; case letter
+
+     MOV AH, 2                    ; print the Lower case letter
+     MOV DL, BL
+     INT 21H
+
+     MOV AH, 4CH                  ; return control to DOS
+     INT 21H
+   MAIN ENDP 
+ END MAIN
+
+
+
+
+
+
+
+
+
+
+
+
+
+9..
+
+ .MODEL SMALL
+ .STACK 100H
+
+ .DATA
+   PROMPT_1  DB  0DH,0AH,'Enter the character : $'
+   PROMPT_2  DB  0DH,0AH,'The ASCII code of the given number in HEX form is : $'
+
+ .CODE
+   MAIN PROC
+     MOV AX, @DATA                ; initialize DS  
+     MOV DS, AX
+
+     @START:                      ; jump label 
+       LEA DX, PROMPT_1           ; load and display the string PROMPT_1
+       MOV AH, 9
+       INT 21H
+
+       MOV AH, 1                  ; read a character
+       INT 21H
+
+       MOV BL, AL                 ; move AL to BL
+
+       CMP BL, 0DH                ; compare BL with CR
+       JE @END                    ; jump to label @END if BL=CR
+
+       LEA DX, PROMPT_2           ; load and display the string PROMPT_2
+       MOV AH, 9
+       INT 21H
+
+       XOR DX, DX                 ; clear DX
+       MOV CX, 4                  ; move 4 to CX
+
+       @LOOP_1:                   ; loop label
+         SHL BL, 1                ; shift BL towards left by 1 position
+         RCL DL, 1                ; rotate DL towards left by 1 position
+                                  ; through carry
+       LOOP @LOOP_1               ; jump to label @LOOP_1 if CX!=0
+
+       MOV CX, 4                  ; move 4 to CX
+
+       @LOOP_2:                   ; loop label
+         SHL BL, 1                ; shift BL towards left by 1 position
+         RCL DH, 1                ; rotate DH towards left by 1 position
+                                  ; through carry
+       LOOP @LOOP_2               ; jump to label @LOOP_2 if CX!=0
+
+       MOV BX, DX                 ; move DX to BX
+       MOV CX, 2                  ; initialize loop counter
+
+       @LOOP_3:                   ; loop label
+         CMP CX, 1                ; compare CX wiht 1
+         JE @SECOND_DIGIT         ; jump to label @SECOND_DIGIT if CX=1
+         MOV DL, BL               ; move BL to DL
+         JMP @NEXT                ; jump to label @NEXT
+
+         @SECOND_DIGIT:           ; jump label
+           MOV DL, BH             ; move BH to DL
+
+         @NEXT:                   ; jump label
+
+         MOV AH, 2                ; set output function
+
+         CMP DL, 9                ; compare DL with 9
+         JBE @NUMERIC_DIGIT       ; jump to label @NUMERIC_DIGIT if DL<=9
+         SUB DL, 9                ; convert it to number i.e. 1,2,3,4,5,6
+         OR DL, 40H               ; convert number to letter i.e. A,B...F
+         JMP @DISPLAY             ; jump to label @DISPLAY
+
+         @NUMERIC_DIGIT:          ; jump label
+           OR DL, 30H             ; convert decimal to ascii code
+
+         @DISPLAY:                ; jump label
+           INT 21H                ; print the character
+       LOOP @LOOP_3               ; jump to label @LOOP_3 if CX!=0
+
+       JMP @START                 ; jump to label @START
+
+     @END:                        ; jump label
+
+     MOV AH, 4CH                  ; return control to DOS
+     INT 21H
+   MAIN ENDP
+ END MAIN
+
+
+
+
+
+
+
+10..
+
+.MODEL SMALL
+ .STACK 100H
+
+ .DATA
+   PROMPT_1  DB  'Enter the hexadecimal number ( max 4-digit ) : $'
+   PROMPT_2  DB  0DH,0AH,'The equivalent 16-bit binary number is : $'
+   ILLEGAL   DB  0DH,0AH,'Illegal hex number. Try again : $'
+
+   COUNT     DB  ?
+ 
+ .CODE
+   MAIN PROC
+     MOV AX, @DATA                ; initialize DS
+     MOV DS, AX
+
+     LEA DX, PROMPT_1             ; load and display the string PROMPT_1
+     MOV AH,9
+     INT 21H
+
+     JMP @START                   ; jump to label @START_2 
+
+     @START_1:                    ; jump label
+       LEA DX, ILLEGAL            ; load and display the string ILLEGAL
+       MOV AH, 9
+       INT 21H
+
+     @START:                      ;
+       XOR BX, BX                 ; clear BX
+       MOV COUNT, 30H             ; initialize loop counter
+
+     @START_2:                    ; jump label
+       MOV AH, 1                  ; set input function
+       INT 21H                    ; read a character
+
+       CMP AL, 0DH                ; compare Al with CR
+       JNE @SKIP                  ; jump to label @SKIP if AL!=CR
+
+       CMP COUNT, 30H             ; compare COUNT with 0
+       JBE @START_1               ; jump to label @START_1 if COUNT<=0
+       JMP @END                   ; jump to label @END
+
+       @SKIP:                     ; jump label
+
+       CMP AL, "A"                ; compare AL with "A"
+       JB @DECIMAL                ; jump to label @DECIMAL if AL<A
+
+       CMP AL, "F"                ; compare AL with "F"
+       JA @START_1                ; jump to label @START_1 if AL>F
+       ADD AL, 09H                ; add 9 to AL
+       JMP @OK                    ; jump to label @OK
+
+       @DECIMAL:                  ; jump label
+         CMP AL, 30H              ; compare AL with 0
+         JB @START_1              ; jump to label @START_1 if AL<0
+
+         CMP AL, 39H              ; compare AL with 9
+         JA @START_1              ; jump to label @START_1 if AL>9
+
+       @OK:                       ; jump label
+
+       INC COUNT                  ; increment the COUNT variable
+
+       AND AL, 0FH                ; convert the ascii into binary code
+
+       MOV CL, 4                  ; set CL=4
+       SHL AL, CL                 ; shift AL towards left by 4 positions
+
+       MOV CX, 4                  ; set CX=4
+
+       @LOOP_1:                   ; loop label
+         SHL AL, 1                ; shift AL towards left by 1 position
+         RCL BX, 1                ; rotate BX towards left by 1 position
+                                  ; through carry
+       LOOP @LOOP_1               ; jump to label @LOOP_1 if CX!=0
+
+      CMP COUNT, 34H              ; compare COUNT with 4
+      JE @END                     ; jump to label @END if COUNT=4
+      JMP @START_2                ; jump to label @START_2
+
+     @END:                        ; jump label
+
+     LEA DX, PROMPT_2             ; load and display the string PROMPT_2
+     MOV AH, 9                    
+     INT 21H
+
+     MOV CX, 16                   ; set CX=16
+     MOV AH, 2                    ; set output function
+
+     @LOOP_2:                     ; loop label
+       SHL BX, 1                  ; shift BX towards left by 1 position
+       JC @ONE                    ; jump to label @ONE if CF=1
+       MOV DL, 30H                ; set DL=0
+       JMP @DISPLAY               ; jump to label @DISPLAY
+
+       @ONE:                      ; jump label
+         MOV DL, 31H              ; set DL=1
+
+       @DISPLAY:                  ; jump label
+         INT 21H                  ; display a character
+     LOOP @LOOP_2                 ; jump to label @LOOP_2 if CX!=0
+
+     MOV AH, 4CH                  ; return control to DOS
+     INT 21H
+   MAIN ENDP
+ END MAIN
+
+
